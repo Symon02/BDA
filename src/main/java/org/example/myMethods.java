@@ -9,10 +9,10 @@ import java.util.Map;
 
 class myMethods {
     public static Iterator<Tuple2<String,Long>> wordCountPerDoc(String document) {
-        String[] tokens = document.split(" ");
+        String[] tokens = document.split(" "); // ogni singola parola del doc è un token
         HashMap<String, Long> counts = new HashMap<>();
         ArrayList<Tuple2<String, Long>> pairs = new ArrayList<>();
-        for (String token : tokens) {
+        for (String token : tokens) { // conta quante volte è presente una parola e aggiorna l'hashmap
             counts.put(token, 1L + counts.getOrDefault(token, 0L));
         }
         for (Map.Entry<String, Long> e : counts.entrySet()) {
