@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  spark-master:
+    image: apache/spark:latest
+    container_name: spark-master
+    command: >
+      /opt/spark/bin/spark-class
+      org.apache.spark.deploy.master.Master
+    ports:
+      - "8080:8080"   # Web UI
+      - "7077:7077"   # Spark master port
+    networks:
+      - spark-net
+
+  spark-worker:
+    image: apache/spark:latest
+    container_name: spark-worker
+    command: >
+      /opt/spark/bin/spark-class
+      org.apache.spark.deploy.worker.Worker
+      spark://spark-master:7077
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=2g
+    volumes:
+      - ./app:/opt/spark-apps
+    networks:
+      - spark-net
+
+  spark-submit:
+    image: apache/spark:latest
+    container_name: spark-submit
+    depends_on:
+      - spark-master
+    volumes:
+      - ./app:/opt/spark-apps
+    command: >
+      /opt/spark/bin/spark-submit
+      --class HW1.G62HW1
+      --master spark://spark-master:7077
+      /opt/spark-apps/BDC-1.0-SNAPSHOT-all.jar
+      /opt/spark-apps/testinputN32D2.csv
+      3 3 4
+    networks:
+      - spark-net
+
+networks:
+  spark-net:

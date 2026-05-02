@@ -2,7 +2,7 @@ package HW1;
 
 import org.apache.spark.mllib.linalg.Vector;
 
-public class Point {
+public class Point implements java.io.Serializable {
         Vector p;
         char group; // 'A' or 'B'
 
