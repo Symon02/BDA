@@ -1,11 +1,13 @@
 package HW1;
 
+import org.apache.spark.mllib.linalg.Vector;
 import org.apache.spark.mllib.linalg.Vectors;
+import scala.Tuple2;
 import java.util.ArrayList;
 
 public class FairCenter {
-    public static ArrayList<Point> FairFFT(ArrayList<Point> points, int kA, int kB) {
-        ArrayList<Point> centers = new ArrayList<>();
+    public static ArrayList<Tuple2<Vector, Character>> FairFFT(ArrayList<Tuple2<Vector, Character>> points, int kA, int kB) {
+        ArrayList<Tuple2<Vector, Character>> centers = new ArrayList<>();
         int countA = 0, countB = 0;
 
         if (points.isEmpty()) return centers;
@@ -19,11 +21,11 @@ public class FairCenter {
             double maxDist = -1.0;
 
             for (int i = 0; i < points.size(); i++) {
-                Point p = points.get(i);
+                Tuple2<Vector, Character> p = points.get(i);
 
                 // Controlla se il gruppo ha ancora budget
-                boolean canPick = (p.group == 'A' && countA < kA) ||
-                        (p.group == 'B' && countB < kB);
+                boolean canPick = (p._2 == 'A' && countA < kA) ||
+                        (p._2 == 'B' && countB < kB);
 
                 if (canPick && minDistances[i] > maxDist) {
                     maxDist = minDistances[i];
@@ -31,15 +33,15 @@ public class FairCenter {
                 }
             }
 
-            if (bestIdx == -1) break; // Non ci sono più punti validi
+            if (bestIdx == -1) break;
 
-            Point newCenter = points.get(bestIdx);
+            Tuple2<Vector, Character> newCenter = points.get(bestIdx);
             centers.add(newCenter);
-            if (newCenter.group == 'A') countA++; else countB++;
+            if (newCenter._2 == 'A') countA++; else countB++;
 
-            // Aggiorna le distanze minime incrementalmente
+            // ---- UPDATE MIN DIST FOR EACH POINT
             for (int i = 0; i < points.size(); i++) {
-                double d = Math.sqrt(Vectors.sqdist(points.get(i).p, newCenter.p));
+                double d = Math.sqrt(Vectors.sqdist(points.get(i)._1, newCenter._1));
                 if (d < minDistances[i]) {
                     minDistances[i] = d;
                 }

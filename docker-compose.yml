@@ -42,7 +42,7 @@ services:
       --master spark://spark-master:7077
       /opt/spark-apps/BDC-1.0-SNAPSHOT-all.jar
       /opt/spark-apps/uber_small.csv
-      10 0 2
+      2 2 2
     networks:
       - spark-net
 

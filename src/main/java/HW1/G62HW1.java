@@ -4,7 +4,7 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.*;
 import org.apache.spark.mllib.linalg.Vector;
 import org.apache.spark.mllib.linalg.Vectors;
-
+import scala.Tuple2;
 import java.util.ArrayList;
 
 public class G62HW1 {
@@ -29,7 +29,7 @@ public class G62HW1 {
         // ---- READ INPUT ----
         JavaRDD<String> lines = sc.textFile(inputPath).repartition(L);
 
-        JavaRDD<Point> inputPoints = lines.map(line -> {
+        JavaRDD<Tuple2<Vector, Character>> inputPoints = lines.map(line -> {
             String[] tokens = line.split(",");
 
             // --- RETRIEVING THE COORDINATES OF A POINT ---
@@ -42,40 +42,39 @@ public class G62HW1 {
 
             // ---- RETRIEVING THE GROUP OF A POINT ----
             char group = tokens[d].charAt(0);
-
-            return new Point(v, group);
+             return new Tuple2<>(v, group);
         }).cache();
 
         // ---- COMPUTE N, NA, NB ----
         long N = inputPoints.count();
-        long NA = inputPoints.filter(p -> p.group == 'A').count();
-        long NB = inputPoints.filter(p -> p.group == 'B').count();
+        long NA = inputPoints.filter(p -> p._2 == 'A').count();
+        long NB = inputPoints.filter(p -> p._2 == 'B').count();
 
         // ---- RUN MRFairFFT (TIMED) ----
         long start = System.currentTimeMillis();
-        ArrayList<Point> S = FairMap.MRFairFFT(inputPoints, kA, kB);
+        ArrayList<Tuple2<Vector, Character>> S = FairMap.MRFairFFT(inputPoints, kA, kB);
         long end = System.currentTimeMillis();
 
         // ---- CALCULATE OBJ FUNC ----
-        final ArrayList<Point> finalCenters = S;
+        final ArrayList<Tuple2<Vector, Character>> finalCenters = S;
         double objective = inputPoints.map(p -> {
             double minDist = Double.MAX_VALUE;
-            for (Point c : finalCenters) {
-                double d = Math.sqrt(Vectors.sqdist(p.p, c.p));
+            for (Tuple2<Vector, Character> c : finalCenters) {
+                double d = Math.sqrt(Vectors.sqdist(p._1, c._1));
                 if (d < minDist) minDist = d;
             }
             return minDist;
         }).reduce((d1, d2) -> Math.max(d1, d2));
 
         // ---- PRINT CMD ARGUMENTS ----
-        System.out.println("Input file: " + inputPath + " kA: " + kA + " kB: " + kB + " L: " + L);
+        System.out.println("Input file: " + inputPath + ", KA: " + kA + ", KB: " + kB + ", L: " + L);
 
         // ---- PRINT NUMB OF POINTS ----
-        System.out.println("N  = " + N + " NA = " + NA + " NB = " + NB);
+        System.out.println("N  = " + N + ", NA = " + NA + ", NB = " + NB);
 
         // ---- PRINT CENTER ----
-        for (Point p : S) {
-            System.out.println("Center = [" + p.p + "] Label = " + p.group);
+        for (Tuple2<Vector, Character> p : S) {
+            System.out.println("Center = " + p._1 + " Label = " + p._2);
         }
 
         // ---- PRINT OBJ FUNC ----
