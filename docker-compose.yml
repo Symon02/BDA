@@ -40,7 +40,7 @@ services:
       /opt/spark/bin/spark-submit
       --class HW1.G62HW1
       --master spark://spark-master:7077
-      /opt/spark-apps/BDC-1.0-SNAPSHOT-all.jar
+      /opt/spark-apps/BDC.jar
       /opt/spark-apps/uber_small.csv
       2 2 2
     networks:

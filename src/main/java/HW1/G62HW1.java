@@ -6,6 +6,7 @@ import org.apache.spark.mllib.linalg.Vector;
 import org.apache.spark.mllib.linalg.Vectors;
 import scala.Tuple2;
 import java.util.ArrayList;
+import java.util.List;
 
 public class G62HW1 {
     public static void main(String[] args) {
@@ -52,7 +53,7 @@ public class G62HW1 {
 
         // ---- RUN MRFairFFT (TIMED) ----
         long start = System.currentTimeMillis();
-        ArrayList<Tuple2<Vector, Character>> S = FairMap.MRFairFFT(inputPoints, kA, kB);
+        ArrayList<Tuple2<Vector, Character>> S = MRFairFFT(inputPoints, kA, kB);
         long end = System.currentTimeMillis();
 
         // ---- CALCULATE OBJ FUNC ----
@@ -84,5 +85,66 @@ public class G62HW1 {
         System.out.println("Running time of MRFairFFT = " + (end - start) + " ms");
 
         sc.close();
+    }
+
+    public static ArrayList<Tuple2<Vector, Character>> MRFairFFT (JavaRDD<Tuple2<Vector, Character>> data, int kA, int kB) {
+        // --- ROUND 1 ---
+        JavaRDD<Tuple2<Vector, Character>> localCentersRDD = data.mapPartitions(partition -> {
+            ArrayList<Tuple2<Vector, Character>> points = new ArrayList<>();
+            while (partition.hasNext()) {
+                points.add(partition.next());
+            }
+            return FairFFT(points, kA, kB).iterator();
+        });
+
+        // --- ROUND 2 ---
+        List<Tuple2<Vector, Character>> collectedList = localCentersRDD.collect();
+        ArrayList<Tuple2<Vector, Character>> coreset = new ArrayList<>(collectedList);
+
+        return FairFFT(coreset, kA, kB);
+    }
+
+    public static ArrayList<Tuple2<Vector, Character>> FairFFT(ArrayList<Tuple2<Vector, Character>> points, int kA, int kB) {
+        ArrayList<Tuple2<Vector, Character>> centers = new ArrayList<>();
+        int countA = 0, countB = 0;
+
+        if (points.isEmpty()) return centers;
+
+        // Inizializziamo le distanze minime di ogni punto dai centri selezionati
+        double[] minDistances = new double[points.size()];
+        for (int i = 0; i < points.size(); i++) minDistances[i] = Double.MAX_VALUE;
+
+        while (countA < kA || countB < kB) {
+            int bestIdx = -1;
+            double maxDist = -1.0;
+
+            for (int i = 0; i < points.size(); i++) {
+                Tuple2<Vector, Character> p = points.get(i);
+
+                // Controlla se il gruppo ha ancora budget
+                boolean canPick = (p._2 == 'A' && countA < kA) ||
+                        (p._2 == 'B' && countB < kB);
+
+                if (canPick && minDistances[i] > maxDist) {
+                    maxDist = minDistances[i];
+                    bestIdx = i;
+                }
+            }
+
+            if (bestIdx == -1) break;
+
+            Tuple2<Vector, Character> newCenter = points.get(bestIdx);
+            centers.add(newCenter);
+            if (newCenter._2 == 'A') countA++; else countB++;
+
+            // ---- UPDATE MIN DIST FOR EACH POINT
+            for (int i = 0; i < points.size(); i++) {
+                double d = Math.sqrt(Vectors.sqdist(points.get(i)._1, newCenter._1));
+                if (d < minDistances[i]) {
+                    minDistances[i] = d;
+                }
+            }
+        }
+        return centers;
     }
 }
